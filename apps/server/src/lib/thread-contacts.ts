@@ -1,33 +1,23 @@
 import type { ParsedMessage } from '../types';
 
-type ThreadContact = {
-  name?: string;
-  email: string;
-};
+export const getParticipants = (messages: ParsedMessage[]) => {
+  const participants = new Map<string, { name?: string; email: string }>();
 
-type AddressLike = {
-  name?: string;
-  email?: string;
-};
-
-export const collectThreadContacts = (messages: ParsedMessage[]): ThreadContact[] => {
-  const contactsByEmail = new Map<string, ThreadContact>();
-
-  const rememberContact = (address: AddressLike | undefined) => {
-    if (!address?.email) return;
-    if (!contactsByEmail.has(address.email)) {
-      contactsByEmail.set(address.email, {
-        name: address.name,
-        email: address.email,
+  const setIfUnset = (sender: any) => {
+    if (!sender?.email) return;
+    if (!participants.has(sender.email)) {
+      participants.set(sender.email, {
+        name: sender.name,
+        email: sender.email,
       });
     }
   };
 
-  for (const item of messages) {
-    rememberContact(item.sender);
-    (item.to || []).forEach(rememberContact);
-    (item.cc || []).forEach(rememberContact);
-  }
+  messages.forEach((message) => {
+    setIfUnset(message.sender);
+    (message.to || []).forEach(setIfUnset);
+    (message.cc || []).forEach(setIfUnset);
+  });
 
-  return Array.from(contactsByEmail.values());
+  return Array.from(participants.values());
 };
