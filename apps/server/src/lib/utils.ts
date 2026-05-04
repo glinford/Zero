@@ -124,6 +124,57 @@ export const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+type AuditUnsubscribeAction =
+  | { type: 'get'; url: string; host: string }
+  | { type: 'post'; url: string; body: string; host: string }
+  | { type: 'email'; emailAddress: string; subject: string; host: string };
+
+export const inferAuditUnsubscribeAction = ({
+  headerValue,
+  oneClickDirective,
+}: {
+  headerValue: string;
+  oneClickDirective?: string;
+}): AuditUnsubscribeAction | null => {
+  const bracketedAddress = headerValue.match(/<([^>]+)>/)?.[1];
+  const candidates = bracketedAddress ? [bracketedAddress] : [headerValue];
+
+  for (const candidate of candidates) {
+    let parsed: URL;
+    try {
+      parsed = new URL(candidate);
+    } catch {
+      continue;
+    }
+
+    const protocolName = parsed.protocol.slice(0, -1);
+    if (protocolName === 'http' || protocolName === 'https') {
+      const url = parsed.toString();
+      if (oneClickDirective) {
+        return {
+          type: 'post',
+          url,
+          body: oneClickDirective,
+          host: parsed.hostname,
+        };
+      }
+
+      return { type: 'get', url, host: parsed.hostname };
+    }
+
+    if (protocolName === 'mailto') {
+      return {
+        type: 'email',
+        emailAddress: parsed.pathname,
+        subject: parsed.searchParams.get('subject') ?? '',
+        host: parsed.hostname,
+      };
+    }
+  }
+
+  return null;
+};
+
 export const getFileIcon = (mimeType: string): string => {
   if (mimeType === 'application/pdf') return '📄';
   if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return '📊';
