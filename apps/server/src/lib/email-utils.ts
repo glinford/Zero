@@ -156,3 +156,11 @@ export const wasSentWithTLS = (receivedHeaders: string[]) => {
 
   return false;
 };
+
+export const describeAttachmentCapacity = (amount: number): string => {
+  if (amount === 0) return '0 Bytes';
+  const unit = 1024;
+  const labels = ['Bytes', 'KB', 'MB', 'GB'];
+  const slot = Math.floor(Math.log(amount) / Math.log(unit));
+  return parseFloat((amount / Math.pow(unit, slot)).toFixed(2)) + ' ' + labels[slot];
+};
